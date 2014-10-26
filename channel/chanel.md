@@ -74,3 +74,166 @@ if !ok{
 }
 ```
 chanelがcloseしokがfalseになると、if !ok内をくぐってbreakで抜け出すことができる、というわけです。
+
+Effective Goにはこんなスローガンが書いてあります  
+
+共有メモリを使って通信せず、通信によってメモリを共有せよ。
+
+一番最初に言った通り、goはキチンとチャネルを使いこなすことによって値の競合を防ぐことができます。  
+ならば共有変数の代わりになる値などもチャネルで引き回すべきですよね?  
+```go
+package main
+
+import (
+	"fmt"
+	"os"
+)
+
+const goroutines = 10
+
+func main() {
+	counter := make(chan int, 1)
+	for i := 0; i < goroutines; i++ {
+		go func(counter chan int) {
+
+			value := <-counter
+
+			value++
+
+			fmt.Println("count", value)
+
+			if value == goroutines {
+				os.Exit(0)
+			}
+
+			counter <- value
+		}(counter)
+
+	}
+
+	counter <- 0
+
+	for {
+
+	}
+
+}
+```
+このコードを実行するためには環境変数GOMAXPROCSを2以上にしなければなりません。  
+環境変数GOMAXPROCSを2以上に設定することで、2つ以上のCPUを使った並列処理が可能になります。  
+GOMAXPROCSが1のままだと1つのCPUでの処理となるので、for無限ループに入った時にほかのものを処理できません。  
+そのため、環境変数GOMAXPROCSを2以上にする必要があります。  
+もし環境変数を変えないままこのコードを実行したならば、「Ctrl」+「c」で抜け出してください。  
+
+#selectの話
+
+少し長引きましたが、申し訳ないです、チャネルの話はまだ続きます。
+selectとは複数のチャネルから送受信待ちをするものです。
+selectはcase節に指定したチャネルが通信可能になったときに、case節の中の処理を実行する、といったものです。  
+ ```go
+select {
+
+	case　条件
+	 	処理
+
+	case　条件
+		処理
+
+	default:
+		処理
+}
+```
+そうですね、switchとよく似てますね、条件にマッチしたときに処理が実行されるという形です.　　
+ defaultは他のどのcaseにも当てはまらなかったときに呼び出されます。
+
+```go
+package main
+
+import (
+	"fmt"
+)
+
+func main(){
+
+a := make(chan int)
+b := make(chan int)
+c := make(chan int)
+
+go func() { for { a <- 0 } }()
+
+for i := 0; i < 10; i++ {
+    select {
+    case <-a:
+        fmt.Println("aを受信した")
+    case <-b:
+        fmt.Println("bを受信した")
+    case c <- 0:
+        fmt.Println("cを受信した")
+    }
+}
+}
+```
+これはa,b,cというチャネルがあって、その中で実際に受信しているのはaだけですのでaだけが表示されるというわけです  
+ではさっき言った通りのdefaultを使ってみましょう。
+```go
+package main
+
+import (
+	"fmt"
+)
+
+func main(){
+
+a := make(chan int)
+b := make(chan int)
+c := make(chan int)
+d := make(chan int)
+
+go func() { for { d <- 0 } }()
+
+for i := 0; i < 10; i++ {
+		select {
+		case <-a:
+				fmt.Println("aを受信した")
+		case <-b:
+				fmt.Println("bを受信した")
+		case c <- 0:
+				fmt.Println("cを受信した")
+		default:
+				fmt.Println("なにも受信していないです")
+		}
+}
+}
+```
+チャネルdは走っていないので、defaultが呼び出されましたね。  
+実行可能なcase節が複数ある時はどうなるのでしょうか？  
+```go
+package main
+
+import (
+	"fmt"
+)
+
+func main(){
+
+a := make(chan int)
+b := make(chan int)
+c := make(chan int)
+
+go func() { for { a <- 0 } }()
+
+for i := 0; i < 10; i++ {
+    select {
+    case <-a:
+        fmt.Println("a")
+    case <-b:
+        fmt.Println("b")
+    case c <- 0:
+        fmt.Println("c")
+    }
+}
+}
+```
+ん？ランダムですね？もう一度実行すると結果が変わりますね？
+そうなんです、selectは実行可能なcase節が複数あるとそこからランダムで実行される仕様なんです！  
+以上でgoroutineとchannelの解説です！ありがとうございました！
