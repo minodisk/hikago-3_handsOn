@@ -5,23 +5,22 @@ gorutine(読み方はゴルーチン)というのは複数の処理を並列に�
 ```go
 package main
 
-  import (
-  "fmt"
-  "time"
-  )
+import (
+	"fmt"
+	"time"
+)
 
-  func main() {
-          test()
-          time.Sleep(3 *time.Second)
-          fmt.Println("fin")
-  }
-
-  func test() {
-          for i := 0; i < 5; i++ {
-                  fmt.Println("hello",i)
-                  time.Sleep(1 *time.Second)
-                }
+func main() {
+	test()
+	time.Sleep(3 * time.Second)
+	fmt.Println("fin")
 }
+
+func test() {
+	for i := 0; i < 5; i++ {
+		fmt.Println("hello", i)
+		time.Sleep(1 * time.Second)
+	}
 }
 
 ```
@@ -51,23 +50,23 @@ fin
 package main
 
 import (
-  "fmt"
-  "time"
+	"fmt"
+	"time"
 )
 
 func main() {
-        test()
-        time.Sleep(3 *time.Second)
-        fmt.Println("fin")
+	test()
+	time.Sleep(3 * time.Second)
+	fmt.Println("fin")
 }
 
 func test() {
-        for i := 0; i < 5; i++ {
-                fmt.Println("hello",i)
-                time.Sleep(1 *time.Second)
-              }
+	for i := 0; i < 5; i++ {
+		fmt.Println("hello", i)
+		time.Sleep(1 * time.Second)
+	}
 }
-}
+
 ```
 
 hello 0  
