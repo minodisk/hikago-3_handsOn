@@ -26,16 +26,18 @@ func test() {
 ```
 
 これを実行すると  
+```sh
+ $ go run main.go
+ hello 0
+ hello 1  
+ hello 2  
+ hello 3  
+ hello 4  
+ fin  
+ ``` 
+となり、func testが1~4までの数字を出力するのに４秒かかっていることから、その間func mainが呼ばれていないので、並列に処理していないことがわかります。
 
-hello 0
-hello 1  
-hello 2  
-hello 3  
-hello 4  
-fin  
-となり、func testが1~4までの数字を出力するのに４秒かかっていることから、その間func mainが呼ばれていないので、<u>並列に処理していない</u>ことがわかります。
-
-<b>並列に処理したい</b>
+##並列に処理したい
 
 並列に処理したいときは
 
@@ -55,7 +57,7 @@ import (
 )
 
 func main() {
-	test()
+	go test()
 	time.Sleep(3 * time.Second)
 	fmt.Println("fin")
 }
@@ -68,18 +70,19 @@ func test() {
 }
 
 ```
-
+```sh
+$ go run main.go
 hello 0  
 hello 1  
 hello 2  
 fin  
-
+```
 となります、前回のはhello 4 まで出力されていたのに、今回はfunc mainと func testを並行に処理しているので、4秒たってhello 4が出力される前に３秒で終了するfunc mainが終了してしまうので、hello 2までしか表示されないということです。
 
 以上がgoroutineの簡単な解説です
 
 簡単にまとめると
-+ goroutineは並列な処理を可能にする
+- goroutineは並列な処理を可能にする
 - しかしfunc mainが終了してしまうとgoroutineも終了してしまう
 
 ということです、  
