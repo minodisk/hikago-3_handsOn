@@ -1,7 +1,7 @@
 #channelの話
-goroutine同士の変数はどうやって共有すべきでしょうか？  
+goroutine同士の値はどうやって共有すべきでしょうか？ 
 グローバルで変数を宣言すればよいでしょうか？  
-しかしそれでは並列処理時に変数の競合が起こってしまいますよね。そこでgoroutineの変数の共有にはchanelというものを使います。  
+しかしそれでは並列処理時に変数の競合が起こってしまいますよね。そこでgoroutineの変数の共有にはchannelというものを使います。  
 channelというのはgoroutine同士の通信に使用するものです。  
 
 ```go
@@ -28,9 +28,9 @@ func main() {
 		close(s) //チャネルのクローズ
 	}(chanel)
 
-	for {
+	for { // range でもよさそうだけど、意図的にやっているのなら OK
 		value, ok = <-chanel //チャネルを受信、valueには値が、okにはクローズしたか判別できるbool型が入る
-    if !ok {
+    if !ok { 
       break
     }
 	fmt.Println(value)
@@ -39,33 +39,42 @@ func main() {
 ```
 これを実行すると
 
+```sh
+$ go fmt main.go
 1  
 2  
 3  
 4  
+```
 
 となり最初に宣言した i の値がchannelを経由してvalueへと格納されているのがわかります。
 
-```
 これでchannelが送受信しているのがわかりましたね！
 おさらいですが  
+
 ```go
 chan <- 要素型　//送信専用チャネルの型
 <- chan 要素型  //受信専用チャネルの型
 ```
+
 といったかたちで、送信、受信のチャネルの型を作成できて
+
 ```go
 チャネル　<- 送信する値　//送信
 <- チャネル //受信
 ```
+
 という形で実際に値を送受信できます。  
-チャネルのループは
+チャネルを閉じるには 
+
 ```go
 close(チャネル)
 ```
+
 とすることができます.  
 okにcloseされたかどうかわかるbool型が格納されるので  
 これによって送信チャネルが終了したか判別することができます.よって
+
 ```go
 value, ok := <-chanel
 
@@ -125,6 +134,7 @@ GOMAXPROCSが1のままだと1つのCPUでの処理となるので、for無限�
 そのため、環境変数GOMAXPROCSを2以上にする必要があります。  
 もし環境変数を変えないままこのコードを実行したならば、「Ctrl」+「c」で抜け出してください。  
 
+
 #selectの話
 
 少し長引きましたが、申し訳ないです、チャネルの話はまだ続きます。
@@ -147,31 +157,37 @@ select {
  defaultは他のどのcaseにも当てはまらなかったときに呼び出されます。
 
 ```go
+// go fmt できてない
 package main
 
 import (
 	"fmt"
 )
 
-func main(){
+func main() {
 
-a := make(chan int)
-b := make(chan int)
-c := make(chan int)
+	a := make(chan int)
+	b := make(chan int)
+	c := make(chan int)
 
-go func() { for { a <- 0 } }()
+	go func() {
+		for {
+			a <- 0
+		}
+	}()
 
-for i := 0; i < 10; i++ {
-    select {
-    case <-a:
-        fmt.Println("aを受信した")
-    case <-b:
-        fmt.Println("bを受信した")
-    case c <- 0:
-        fmt.Println("cを受信した")
-    }
+	for i := 0; i < 10; i++ {
+		select {
+		case <-a:
+			fmt.Println("aを受信した")
+		case <-b:
+			fmt.Println("bを受信した")
+		case c <- 0:
+			fmt.Println("cを受信した")
+		}
+	}
 }
-}
+
 ```
 これはa,b,cというチャネルがあって、その中で実際に受信しているのはaだけですのでaだけが表示されるというわけです  
 ではさっき言った通りのdefaultを使ってみましょう。
@@ -208,6 +224,7 @@ for i := 0; i < 10; i++ {
 チャネルdは走っていないので、defaultが呼び出されましたね。  
 実行可能なcase節が複数ある時はどうなるのでしょうか？  
 ```go
+// go fmt
 package main
 
 import (
@@ -221,6 +238,8 @@ b := make(chan int)
 c := make(chan int)
 
 go func() { for { a <- 0 } }()
+go func() { for { b <- 0 } }()
+go func() { for { c <- 0 } }()
 
 for i := 0; i < 10; i++ {
     select {
@@ -228,12 +247,12 @@ for i := 0; i < 10; i++ {
         fmt.Println("a")
     case <-b:
         fmt.Println("b")
-    case c <- 0:
+    case <-c: 
         fmt.Println("c")
     }
 }
 }
 ```
-ん？ランダムですね？もう一度実行すると結果が変わりますね？
+ん？ランダムですね？もう一度実行すると結果が変わりますね？ 
 そうなんです、selectは実行可能なcase節が複数あるとそこからランダムで実行される仕様なんです！  
 以上でgoroutineとchannelの解説です！ありがとうございました！
